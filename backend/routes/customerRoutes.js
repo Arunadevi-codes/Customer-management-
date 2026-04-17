@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const Customer = require("../models/Customer");
+const verifyToken = require("../middleware/authMiddleware"); 
 
 // CREATE customer
-router.post("/", async (req, res) => {
+router.post("/", verifyToken, async (req, res) => {
   try {
     const customer = new Customer(req.body);
     const saved = await customer.save();
@@ -14,19 +15,19 @@ router.post("/", async (req, res) => {
 });
 
 // GET all customers
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, async (req, res) => {
   const customers = await Customer.find();
   res.json(customers);
 });
 
 // GET single customer
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken, async (req, res) => {
   const customer = await Customer.findById(req.params.id);
   res.json(customer);
 });
 
 // UPDATE customer
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken, async (req, res) => {
   const updated = await Customer.findByIdAndUpdate(
     req.params.id,
     req.body,
@@ -36,7 +37,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE customer
-router.delete("/:id", async (req, res) => {
+router.delete("/:id",verifyToken, async (req, res) => {
   await Customer.findByIdAndDelete(req.params.id);
   res.json({ message: "Deleted successfully" });
 });
