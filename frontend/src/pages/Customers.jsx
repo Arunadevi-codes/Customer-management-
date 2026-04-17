@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Search, 
-  X,
-  Check,
-  Mail,
-  Phone,
-  Users
+  Plus, Edit, Trash2, Search, X, Check, Mail, Phone, Users 
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import axios from "axios";
+
+const API = axios.create({
+  baseURL: "http://localhost:5000/api"
+});
 
 const Customers = () => {
-  const [customers, setCustomers] = useState(() => {
-    const storedCustomers = localStorage.getItem('customers');
-    return storedCustomers ? JSON.parse(storedCustomers) : [];
-    });
+  const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -27,17 +21,21 @@ const Customers = () => {
     address: ''
   });
 
-  // Load customers from localStorage on component mount
+  // Fetch customers from API
   useEffect(() => {
-    localStorage.setItem('customers', JSON.stringify(customers));
-    }, [customers]);
+    fetchCustomers();
+  }, []);
 
-  // Save customers to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('customers', JSON.stringify(customers));
-  }, [customers]);
+  const fetchCustomers = async () => {
+    try {
+      const res = await API.get("/customers");
+      setCustomers(res.data);
+    } catch (error) {
+      toast.error("Failed to fetch customers");
+    }
+  };
 
-  // Handle form input changes
+  // Handle form input
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -45,7 +43,7 @@ const Customers = () => {
     });
   };
 
-  // Open modal for adding new customer
+  // Add
   const handleAddClick = () => {
     setEditingCustomer(null);
     setFormData({
@@ -57,7 +55,7 @@ const Customers = () => {
     setIsModalOpen(true);
   };
 
-  // Open modal for editing customer
+  // Edit
   const handleEditClick = (customer) => {
     setEditingCustomer(customer);
     setFormData({
@@ -69,54 +67,52 @@ const Customers = () => {
     setIsModalOpen(true);
   };
 
-  // Save customer (Create or Update)
-  const handleSaveCustomer = () => {
-    // Validation
+  // Save (Create + Update)
+  const handleSaveCustomer = async () => {
     if (!formData.name || !formData.email || !formData.phone) {
-      toast.error('Please fill all required fields');
+      toast.error("Please fill all required fields");
       return;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      toast.error('Please enter a valid email address');
+      toast.error("Please enter a valid email address");
       return;
     }
 
-    if (editingCustomer) {
-      // Update existing customer
-      const updatedCustomers = customers.map(customer =>
-        customer.id === editingCustomer.id
-          ? { ...formData, id: customer.id }
-          : customer
-      );
-      setCustomers(updatedCustomers);
-      toast.success('Customer updated successfully!');
-    } else {
-      // Create new customer
-      const newCustomer = {
-        id: Date.now(),
-        ...formData
-      };
-      setCustomers([...customers, newCustomer]);
-      toast.success('Customer added successfully!');
+    try {
+      if (editingCustomer) {
+        await API.put(`/customers/${editingCustomer._id}`, formData);
+        toast.success("Customer updated successfully!");
+      } else {
+        await API.post("/customers", formData);
+        toast.success("Customer added successfully!");
+      }
+
+      fetchCustomers();
+      setIsModalOpen(false);
+      setEditingCustomer(null);
+
+    } catch (error) {
+      toast.error("Something went wrong");
     }
-    
-    setIsModalOpen(false);
-    setEditingCustomer(null);
   };
 
-  // Delete customer
-  const handleDeleteClick = (id) => {
+  // Delete
+  const handleDeleteClick = async (id) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
-      const updatedCustomers = customers.filter(customer => customer.id !== id);
-      setCustomers(updatedCustomers);
-      toast.success('Customer deleted successfully!');
+      try {
+        await API.delete(`/customers/${id}`);
+        fetchCustomers();
+        toast.success("Customer deleted successfully!");
+      } catch (error) {
+        toast.error("Delete failed");
+      }
     }
   };
 
-  // Filter customers based on search
+  // Search filter
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -134,7 +130,7 @@ const Customers = () => {
         
         <button
           onClick={handleAddClick}
-          className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
         >
           <Plus size={18} />
           <span>Add Customer</span>
@@ -150,7 +146,7 @@ const Customers = () => {
             placeholder="Search customers by name, email or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -164,13 +160,14 @@ const Customers = () => {
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredCustomers.length > 0 ? (
                 filteredCustomers.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={customer._id} className="hover:bg-gray-50 transition-colors duration-200">
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
@@ -178,7 +175,6 @@ const Customers = () => {
                         </div>
                         <div>
                           <p className="font-medium text-gray-800">{customer.name}</p>
-                          <p className="text-xs text-gray-500">{customer.address?.split(',')[0]}</p>
                         </div>
                       </div>
                     </td>
@@ -194,18 +190,22 @@ const Customers = () => {
                         <span className="text-sm text-gray-600">{customer.phone}</span>
                       </div>
                     </td>
-        
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-gray-600">{customer.address || '—'}</span>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => handleEditClick(customer)}
                           className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit"
                         >
                           <Edit size={18} />
                         </button>
                         <button
-                          onClick={() => handleDeleteClick(customer.id)}
+                          onClick={() => handleDeleteClick(customer._id)}
                           className="p-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -263,7 +263,7 @@ const Customers = () => {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="Enter customer name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
@@ -277,7 +277,7 @@ const Customers = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="customer@example.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
@@ -290,8 +290,8 @@ const Customers = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  placeholder="2345678900"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="+1 234 567 8900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
@@ -305,7 +305,7 @@ const Customers = () => {
                   onChange={handleInputChange}
                   placeholder="Enter customer address"
                   rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                 />
               </div>
             </div>
@@ -313,13 +313,13 @@ const Customers = () => {
             <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveCustomer}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2"
               >
                 <Check size={18} />
                 <span>{editingCustomer ? 'Update' : 'Save'}</span>
