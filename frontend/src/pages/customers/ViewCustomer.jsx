@@ -1,9 +1,12 @@
 import React from 'react';
 import { Edit, Trash2, Mail, Phone, MapPin, Users } from 'lucide-react';
 
-const ViewCustomers = ({ customers, onEdit, onDelete }) => {
+const ViewCustomers = ({ customers = [], onEdit, onDelete }) => {
+  // Safe fallback
+  const safeCustomers = customers || [];
+
   // Show empty state when no customers
-  if (customers.length === 0) {
+  if (!safeCustomers || safeCustomers.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
         <div className="flex flex-col items-center justify-center text-gray-500">
@@ -21,6 +24,7 @@ const ViewCustomers = ({ customers, onEdit, onDelete }) => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
+
           {/* Table Header */}
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -44,9 +48,10 @@ const ViewCustomers = ({ customers, onEdit, onDelete }) => {
 
           {/* Table Body */}
           <tbody className="divide-y divide-gray-200">
-            {customers.map((customer) => (
+            {safeCustomers.map((customer) => (
               <tr key={customer._id} className="hover:bg-gray-50 transition-colors duration-200">
-                {/* Customer Name with Avatar */}
+
+                {/* Customer Name */}
                 <td className="px-6 py-4">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
@@ -84,7 +89,7 @@ const ViewCustomers = ({ customers, onEdit, onDelete }) => {
                   </div>
                 </td>
 
-                {/* Action Buttons */}
+                {/* Actions */}
                 <td className="px-6 py-4">
                   <div className="flex items-center space-x-2">
                     <button
@@ -103,16 +108,17 @@ const ViewCustomers = ({ customers, onEdit, onDelete }) => {
                     </button>
                   </div>
                 </td>
+
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Footer with count */}
+      {/* Footer */}
       <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
         <p className="text-sm text-gray-500">
-          Showing {customers.length} customer{customers.length !== 1 ? 's' : ''}
+          Showing {safeCustomers.length} customer{safeCustomers.length !== 1 ? 's' : ''}
         </p>
       </div>
     </div>

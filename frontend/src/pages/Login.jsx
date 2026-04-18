@@ -21,29 +21,28 @@ const Login = () => {
     }
 
     try {
-      const res = await API.post("/auth/login", {
-        username,
-        password,
-      });
+  const res = await API.post("/auth/login", { username, password });
 
-      setToken(res.data.token);
-      
-      // Store user information in localStorage
-      localStorage.setItem('user', JSON.stringify({
-        name: res.data.user?.name || username,
-        email: res.data.user?.email || `${username}@example.com`,
-        username: username,
-        role: res.data.user?.role || 'admin'
-      }));
-      
-      toast.success("Login Successful ✅");
+  if (res.data.token) {
+    localStorage.setItem("token", res.data.token);
+    setToken(res.data.token);
 
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 1500);
-    } catch (error) {
-      toast.error("Invalid Credentials ❌");
-    }
+    localStorage.setItem("user", JSON.stringify({
+      name: res.data.user?.name || username,
+      email: res.data.user?.email || `${username}@example.com`,
+      username,
+      role: res.data.user?.role || 'admin'
+    }));
+
+    toast.success("Login Successful ✅");
+    navigate("/dashboard"); // no need for setTimeout
+  } else {
+    toast.error("No token received ❌");
+  }
+} catch (error) {
+  toast.error("Invalid Credentials ❌");
+}
+
   };
 
   return (
